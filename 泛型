@@ -1,0 +1,113 @@
+1、
+关于泛型的混淆，一个常见的来源就是假设它们像数组一样是协变的。其实它们不是协变的。List<Object> 不是 List<String> 的父类型。
+ 
+如果 A 扩展 B，那么 A 的数组也是 B 的数组，并且完全可以在需要 B[] 的地方使用 A[]：
+ 
+Integer[] intArray = new Integer[10];
+Number[] numberArray = intArray;
+ 
+上面的代码是有效的，因为一个Integer 是 一个 Number，因而一个 Integer 数组是 一个 Number 数组。但是对于泛型来说则不然。下面的代码是无效的：
+ 
+List<Integer> intList = newArrayList<Integer>();
+List<Number> numberList = intList; //invalid
+ 
+最初，大多数 Java 程序员觉得这缺少协变很烦人，或者甚至是“坏的（broken）”，但是之所以这样有一个很好的原因。如果可以将List<Integer> 赋给 List<Number>，下面的代码就会违背泛型应该提供的类型安全：
+ 
+List<Integer> intList = newArrayList<Integer>();
+List<Number> numberList = intList; //invalid
+numberList.add(new Float(3.1415));
+ 
+因为 intList 和 numberList 都是有别名的，如果允许的话，上面的代码就会让您将不是 Integers 的东西放进 intList 中。
+
+2、泛型方法
+泛型方法使得该方法能独立于类而产生变化。
+以下是一个基本的指导原则：无论何时，只要你能做到，你就应该尽量使用泛型方法。
+也就是说，如果使用泛型方法可以取代将整个类泛型化，那么就应该只使用泛型方法，因为它可以使事情更清楚明白。
+另外，对于一个static的方法而言，无法访问泛型类的类型参数。所以，如果static方法需要使用泛型能力，就必须使其成为泛型方法。
+要定义泛型方法，只需将泛型参数列表置于返回值之前。
+package Generics;  
+  
+public class GenericMethods {  
+//当方法操作的引用数据类型不确定的时候，可以将泛型定义在方法上  
+    public <T> void f(T x){  
+        System.out.println(x.getClass().getName());  
+    }  
+    public static void main(String[] args) {  
+        GenericMethods gm = new GenericMethods();  
+        gm.f(99);  
+        gm.f("掌上洪城");  
+        gm.f(new Integer(99));  
+        gm.f(18.88);  
+        gm.f('a');  
+        gm.f(gm);  
+    }  
+}  
+
+3、可变参数与泛型方法
+泛型方法与可变参数列表能很好地共存：
+package Generics;  
+  
+import java.util.ArrayList;  
+import java.util.List;  
+  
+public class GenericVarargs {  
+    public static <T> List<T> makeList(T... args){  
+        List<T> result = new ArrayList<T>();  
+        for(T item:args)  
+            result.add(item);  
+        return result;         
+    }  
+    public static void main(String[] args) {  
+        List ls = makeList("A");  
+        System.out.println(ls);  
+        ls = makeList("A","B","C");  
+        System.out.println(ls);  
+        ls = makeList("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""));  
+        System.out.println(ls);  
+    }  
+}/* 
+[A] 
+[A, B, C] 
+[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z] 
+*/  
+静态方法上的泛型：静态方法无法访问类上定义的泛型。如果静态方法操作的引用数据类型不确定的时候，必须要将泛型定义在方法上。
+    public static<Q> void function(Q t) {
+        System.out.println("function:"+t);
+    }
+    
+4、ArrayList<String>和ArrayList<Integer>是相同的类型。
+
+5、Object类中包含一个方法名叫getClass，利用这个方法就可以获得一个实例的类型类。
+类型类指的是代表一个类型的类，因为一切皆是对象，类型也不例外，在Java使用类型类来表示一个类型。
+所有的类型类都是Class类的实例。getClass() 会看到返回Class<?>。
+Class 类的实例表示正在运行的 Java 应用程序中的类和接口。
+枚举是一种类，注释是一种接口。每个数组属于被映射为 Class 对象的一个类，所有具有相同元素类型和维数的数组都共享该 Class 对象。
+基本的 Java 类型（boolean、byte、char、short、int、long、float 和 double）和关键字 void 也表示为 Class 对象。
+Class 没有公共构造方法。Class 对象是在加载类时由 Java 虚拟机以及通过调用类加载器中的  defineClass 方法自动构造的。
+
+如何创建一个Class<T>类型的实例？
+    就像使用非泛型代码一样，有两种方式：调用方法 Class.forName() 或者使用类常量X.class.
+    Class.forName() 被定义为返 回 Class<?>。另一方面，类常量 X.class 被定义为具有类型 Class<X>，所以String.class 是Class<String> 类型的。
+让 Foo.class 是 Class<Foo> 类型有什么好处？
+    大的好处是，通过类型推理的魔力，可以提高使用反射的代码的类型安全。
+    另外，还不需要将 Foo.class.newInstance() 强制类型转换为 Foo。
+    比如有一个方法，它从数据库检索一组对象，并返回 JavaBeans 对象的一个集合。
+    您通过反射来实例化和初始化创建的对象，但是这并不意味着类型安全必须完全被抛至脑后。例如下面这个方法：
+public static<T> List<T> getRecords(Class<T> c, Selector s) {
+     // Use Selector to select rows 
+     List<T> list = new ArrayList<T>();
+     for (/* iterate over results */) {
+         T row = c.newInstance(); // use reflection to set fields from result 
+         list.add(row); 
+      } 
+      return list; 
+}
+可以简单的像下面这样简单地调用该方法：
+List<FooRecord> l = getRecords(FooRecord.class, fooSelector); 
+
+6、
+上限：？extends E：可以接收E类型或者E的子类型对象。
+下限：？super E：可以接收E类型或者E的父类型对象。
+上限什么时候用：往集合中添加元素时，既可以添加E类型对象，又可以添加E的子类型对象。为什么？因为取的时候，E类型既可以接收E类对象，又可以接收E的子类型对象。
+ 
+下限什么时候用：当从集合中获取元素进行操作的时候，可以用当前元素的类型接收，也可以用当前元素的父类型接收。
